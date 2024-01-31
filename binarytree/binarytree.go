@@ -1,10 +1,9 @@
 package binarytree
 
-
-type Treee interface {
-	Search (value int) *Knot
-	Insert  (value int)
-	String () string
-	SubSearch(value int) *Knot
-	GiveKnots() []*Knot
+type Tree interface {
+	Search(value int) *knot
+	Insert(value int)
+	Print(terminal_width int) string
+	GiveKnots() []*knot
+	InsertList(values []int)
 }

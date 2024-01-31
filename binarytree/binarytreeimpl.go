@@ -1,41 +1,48 @@
 package binarytree
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
-type tree struct{
-	knots []*Knot
-	root *Knot
-	current_knot *Knot
-	knot_count int
+type tree struct {
+	knots        []*knot
+	root         *knot
+	current_knot *knot
+	knot_count   int
 }
 
-type Knot struct{
-	leftPtr *Knot
-	rightPtr *Knot
-	value int
+type knot struct {
+	leftPtr  *knot
+	rightPtr *knot
+	value    int
 }
 
-
-func NewKnot(value int) *Knot{
-	var k *Knot = new(Knot)
+func NewKnot(value int) *knot {
+	var k *knot = new(knot)
 	k.value = value
 	k.leftPtr = nil
 	k.rightPtr = nil
 	return k
 }
 
-func NewTree() *tree{
+func NewTree() *tree {
 	var t *tree = new(tree)
 	return t
 }
 
-func (t *tree) GiveKnots () []*Knot {
+func (t *tree) GiveKnots() []*knot {
 	return t.knots
 }
 
+func (t *tree) InsertList(values []int) {
+	for _, v := range values {
+		t.Insert(v)
+	}
+}
 
-func (t *tree) Insert (value int) {
-	var knot *Knot = NewKnot(value)
+func (t *tree) Insert(value int) {
+	var knot *knot = NewKnot(value)
 	t.knot_count++
 	t.knots = append(t.knots, knot)
 
@@ -43,92 +50,106 @@ func (t *tree) Insert (value int) {
 		t.root = knot
 		return
 	}
+
 	t.current_knot = t.root
+
 	for {
-		if value <= t.current_knot.value && t.current_knot.leftPtr != nil{
+		if value <= t.current_knot.value && t.current_knot.leftPtr != nil {
 			t.current_knot = t.current_knot.leftPtr
-		} else if t.current_knot.rightPtr != nil {
+		} else if value > t.current_knot.value && t.current_knot.rightPtr != nil {
 			t.current_knot = t.current_knot.rightPtr
-		}	else {
+		} else {
 			break
 		}
 	}
 
 	if value <= t.current_knot.value {
 		t.current_knot.leftPtr = knot
-	}	else if value > t.current_knot.value {
+	} else if value > t.current_knot.value {
 		t.current_knot.rightPtr = knot
 	}
 }
 
-func (n *tree) SubSearch (value int) *Knot {
-	if n.current_knot == nil {
+func (t *tree) search(value int) *knot {
+	if t.current_knot == nil {
 		return nil
-	} else if value < n.current_knot.value {
-		n.current_knot = n.current_knot.leftPtr
-		return n.SubSearch(value)
-	} else if value > n.current_knot.value {
-		n.current_knot = n.current_knot.rightPtr
-		return n.SubSearch(value)
+	} else if value < t.current_knot.value {
+		t.current_knot = t.current_knot.leftPtr
+		return t.search(value)
+	} else if value > t.current_knot.value {
+		t.current_knot = t.current_knot.rightPtr
+		return t.search(value)
 	} else {
-		return n.current_knot
+		return t.current_knot
 	}
 }
 
-
-func (n* tree) Search(value int) *Knot {
-	n.current_knot = n.root
-	knot := n.SubSearch(value)
-	return knot 
+func (t *tree) Search(value int) *knot {
+	t.current_knot = t.root
+	knot := t.search(value)
+	return knot
 }
 
-func (current_knot *Knot) AddTwoKnots(s string) (string, *Knot, *Knot) {
-	var left_knot string = "nil"
-	var right_knot string = "nil"
+func (current_knot *knot) add_childs_of_knot_to_string(new_layer []*knot) (string, []*knot) {
+	var left_knot, right_knot string = "n", "n"
+	var string_addition string
 
 	if current_knot.leftPtr != nil {
 		left_knot = fmt.Sprint(current_knot.leftPtr.value)
+		new_layer = append(new_layer, current_knot.leftPtr)
 	}
 	if current_knot.rightPtr != nil {
 		right_knot = fmt.Sprint(current_knot.rightPtr.value)
-	}
-	s = s + " " + left_knot +  " " + right_knot + " "
-	return s, current_knot.leftPtr, current_knot.rightPtr
+		new_layer = append(new_layer, current_knot.rightPtr)
 	}
 
-func interate_trough_layer (s string, layer []*Knot) (string, []*Knot) {
-	var new_layer []*Knot
-	for i:=0; i<len(layer); i++ {
-			var kn1, kn2 *Knot
-			s, kn1, kn2 = layer[i].AddTwoKnots(s)
-			if kn1 != nil {
-				new_layer = append(new_layer, kn1)
-			}	
-			if kn2 != nil {
-				new_layer = append(new_layer, kn2)
-			}
-		}
-		
-	return s, new_layer
+	string_addition = left_knot + " " + right_knot + " "
+
+	return string_addition, new_layer
 }
 
+func interate_trough_layer(layer []*knot) (string, []*knot) {
+	var new_layer []*knot
+	var layer_string string
+	var layer_addition_string string
 
-func (t *tree) String() string {
-	var s string = fmt.Sprint(t.root.value)
-	var aktuelle_layer []*Knot
-	aktuelle_layer = append(aktuelle_layer, t.root)
+	for i := 0; i < len(layer); i++ {
+		layer_addition_string, new_layer = layer[i].add_childs_of_knot_to_string(new_layer)
+		layer_string = layer_string + layer_addition_string
+	}
+	return layer_string, new_layer
+}
 
-	fmt.Println(t.root.leftPtr, t.root.rightPtr)
-	
+func (t *tree) Print(terminal_width int) string {
+	var s string
+	var string_addition string = fmt.Sprint(t.root.value)
+
+	var current_layer []*knot
+	current_layer = append(current_layer, t.root)
+
 	for {
-		s = s + "\n"
-		s, aktuelle_layer = interate_trough_layer(s, aktuelle_layer)
-		if len(aktuelle_layer) == 0 {
+		fmt.Println(centerString(string_addition, terminal_width))
+		s = s + string_addition + "\n"
+		string_addition, current_layer = interate_trough_layer(current_layer)
+		if len(current_layer) == 0 {
 			break
 		}
 	}
-	
+
 	return s
 }
 
-		
+func centerString(s string, width int) string {
+	sLen := len(s)
+	if sLen >= width {
+		return s
+	}
+
+	// Calculate the number of spaces needed on each side
+	padding := (width - sLen) / 2
+
+	// Build the centered string
+	centeredStr := strings.Repeat(" ", padding) + s + strings.Repeat(" ", padding)
+
+	return centeredStr
+}
