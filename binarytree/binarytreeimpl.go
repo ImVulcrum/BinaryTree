@@ -2,7 +2,6 @@ package binarytree
 
 import (
 	"fmt"
-	"math"
 	"strings"
 )
 
@@ -106,108 +105,135 @@ func (t *tree) Search(value int) *knot {
 	return knot
 }
 
-func (current_knot *knot) add_childs_of_knot_to_string(new_layer []*knot, layer_spacing int, max_len int) (string, []*knot) {
-	var left_knot, right_knot string = "n", "n"
-	var string_addition string
-	var separator string = strings.Repeat(" ", layer_spacing)
-
+func (current_knot *knot) add_childs_of_knot_to_layer(new_layer []*knot) []*knot {
 	if current_knot == nil {
 		new_layer = append(new_layer, nil, nil)
-		left_knot = "n"
-		right_knot = "n"
-
 	} else {
-
-		if current_knot.leftPtr != nil {
-			left_knot = fmt.Sprint(current_knot.leftPtr.value)
-		} else {
-			left_knot = "n"
-		}
-
 		new_layer = append(new_layer, current_knot.leftPtr)
-
-		if current_knot.rightPtr != nil {
-			right_knot = fmt.Sprint(current_knot.rightPtr.value)
-
-		} else {
-			right_knot = "n"
-		}
-
 		new_layer = append(new_layer, current_knot.rightPtr)
 	}
-
-	if len(left_knot)%2 == 0 {
-		left_knot = "0" + left_knot
-	}
-	if len(right_knot)%2 == 0 {
-		right_knot = "0" + right_knot
-	}
-
-	if len(left_knot) < max_len {
-		left_knot = equalize_different_value_lenghts(left_knot, max_len)
-	}
-	if len(right_knot) < max_len {
-		right_knot = equalize_different_value_lenghts(right_knot, max_len)
-	}
-
-	string_addition = left_knot + separator + right_knot
-
-	return string_addition, new_layer
+	return new_layer
 }
 
-func interate_trough_layer(layer []*knot, layer_spacing int, max_len_of_value_string int) (string, []*knot) {
+func interate_trough_layer(layer []*knot) []*knot {
 	var new_layer []*knot
-	var layer_string string
-	var layer_addition_string string
-	var separator string = strings.Repeat(" ", layer_spacing)
 
 	for i := 0; i < len(layer); i++ {
-		layer_addition_string, new_layer = layer[i].add_childs_of_knot_to_string(new_layer, layer_spacing, max_len_of_value_string)
-		if layer_string != "" {
-			layer_string = layer_string + separator + layer_addition_string
-		} else {
-			layer_string = layer_string + layer_addition_string
-		}
+		new_layer = layer[i].add_childs_of_knot_to_layer(new_layer)
 	}
-	return layer_string, new_layer
+	return new_layer
 }
 
 func (t *tree) Print(terminal_width int) string {
 	var s string
-	var string_addition string
 	var current_layer []*knot
 
 	for layer_count := 0; true; layer_count++ {
 		if layer_count == 0 {
 			current_layer = append(current_layer, t.root)
-			string_addition = fmt.Sprint(t.root.value)
-			string_addition = equalize_different_value_lenghts(string_addition, t.max_len_of_value_string)
 		} else {
-			string_addition, current_layer = interate_trough_layer(current_layer, calculate_layer_spacing(t.height, layer_count+1, t.max_len_of_value_string), t.max_len_of_value_string)
+			current_layer = interate_trough_layer(current_layer)
 		}
 
 		if layer_empty(current_layer) {
 			break
 		}
 
-		string_addition = strings.Repeat(" ", calc_front_spacing(t.height, string_addition, t.max_len_of_value_string)) + string_addition
-		s = s + string_addition + "\n"
-
-		fmt.Println(string_addition)
+		fmt.Println(" " + create_layer_string(current_layer, t.height-layer_count, t.max_len_of_value_string))
 	}
 
 	return s
 }
 
-func calculate_layer_spacing(tree_height, layer_count int, max_len_of_value_string int) int {
-	var iteration_count int = tree_height - layer_count
+func create_layer_string(layer []*knot, reverse_layer_count int, max_count_of_value_digits int) string {
+	var current_element_equalized string
+	var layer_string string
+	var spacing_count int = calculate_layer_spacing(reverse_layer_count, max_count_of_value_digits)
+	var modified_value_digit_count int = max_count_of_value_digits
+
+	if spacing_count == 0 { //for some reason this has to be set to zero if it is the second last layer
+		modified_value_digit_count = 0
+	}
+
+	for i := 0; i < len(layer); i++ {
+		current_element_equalized = layer[i].get_value_string_equalized(max_count_of_value_digits)
+
+		if reverse_layer_count != 1 { //if its is not the last layer
+			if i == 0 { //this spacing is only neaded on the leftest element
+				layer_string = strings.Repeat(" ", max_count_of_value_digits/2)
+			}
+
+			if layer[i] != nil {
+				//add spacing to the left
+				layer_string = layer_string + strings.Repeat(" ", spacing_count+modified_value_digit_count/2)
+
+				if layer[i].leftPtr != nil {
+					layer_string = layer_string + "┌" + strings.Repeat("─", modified_value_digit_count/2+spacing_count) + current_element_equalized
+				} else {
+					layer_string = layer_string + " " + strings.Repeat(" ", modified_value_digit_count/2+spacing_count) + current_element_equalized
+				}
+
+				if layer[i].rightPtr != nil {
+					layer_string = layer_string + strings.Repeat("─", modified_value_digit_count/2+spacing_count) + "┐"
+				} else {
+					layer_string = layer_string + strings.Repeat(" ", modified_value_digit_count/2+spacing_count) + " "
+				}
+
+				//add spacing to the right
+				layer_string = layer_string + strings.Repeat(" ", modified_value_digit_count/2+spacing_count+max_count_of_value_digits)
+
+			} else { //if the current element is nil, treat it like an element with no childs
+				//left spacing + leftPtr (else block) + rightPtr (else block) + right spacing
+				layer_string = layer_string + strings.Repeat(" ", 4*spacing_count+2*modified_value_digit_count+2*max_count_of_value_digits+2)
+			}
+
+		} else { //if it is the last layer
+			layer_string = layer_string + current_element_equalized + " "
+		}
+	}
+
+	return layer_string
+}
+
+func calculate_layer_spacing(reverse_layer_count int, max_len_of_value_string int) int {
+	var iteration_count int = reverse_layer_count - 3
 	var layer_spacing int = 1
+
+	if iteration_count == -1 {
+		return 0
+	} else if iteration_count == -2 {
+		return -2
+	}
 
 	for i := 0; i < iteration_count; i++ {
 		layer_spacing = (2 * layer_spacing) + max_len_of_value_string
 	}
 
 	return layer_spacing
+}
+
+func (k *knot) get_value_string() string {
+	if k != nil {
+		if len(fmt.Sprint(k.value))%2 == 0 {
+			return "0" + fmt.Sprint(k.value)
+		}
+		return fmt.Sprint(k.value)
+	}
+	return " "
+}
+
+func (k *knot) get_value_string_equalized(max_len_of_value_string int) string {
+	var value_string_unequlized string = k.get_value_string()
+
+	var has_left_child bool
+	var has_right_child bool
+
+	if k != nil {
+		has_left_child = k.leftPtr != nil
+		has_right_child = k.rightPtr != nil
+	}
+
+	return equalize_different_value_lenghts(value_string_unequlized, max_len_of_value_string, has_left_child, has_right_child)
 }
 
 func layer_empty(layer []*knot) bool {
@@ -219,37 +245,44 @@ func layer_empty(layer []*knot) bool {
 	return true
 }
 
-func calc_len_of_bottom_layer_string(tree_height int, max_len_of_value_string int) int {
-	if tree_height == 1 {
-		return 1
+func equalize_different_value_lenghts(current_value_string string, max_string_size int, has_left_child bool, has_right_child bool) string {
+	var line_seperator string = strings.Repeat("─", (max_string_size-len(current_value_string))/2)
+	var space_seperator string = strings.Repeat(" ", (max_string_size-len(current_value_string))/2)
+
+	if has_left_child && has_right_child {
+		return line_seperator + current_value_string + line_seperator
+	} else if has_left_child && !has_right_child {
+		return line_seperator + current_value_string + space_seperator
+	} else if !has_left_child && has_right_child {
+		return space_seperator + current_value_string + line_seperator
+	} else { //!has_left_child && !has_right_child
+		return space_seperator + current_value_string + space_seperator
 	}
-	return max_len_of_value_string*int(math.Pow(2, float64(tree_height-1))) + int(math.Pow(2, float64(tree_height-1))) + 1
 }
 
-func calc_front_spacing(tree_height int, current_string string, max_len_of_value_string int) int {
-	var spacing int = (calc_len_of_bottom_layer_string(tree_height, max_len_of_value_string) - len(current_string)) / 2
-	if spacing < 0 {
-		return 0
-	}
-	return spacing
-}
+// func calc_len_of_bottom_layer_string(tree_height int, max_len_of_value_string int) int {
+// 	if tree_height == 1 {
+// 		return 1
+// 	}
+// 	return max_len_of_value_string*int(math.Pow(2, float64(tree_height-1))) + int(math.Pow(2, float64(tree_height-1))) + 1
+// }
 
-func equalize_different_value_lenghts(current_value_string string, max_string_size int) string {
-	var seperator string = strings.Repeat("-", (max_string_size-len(current_value_string))/2)
-	return seperator + current_value_string + seperator
-}
+// func calc_front_spacing(tree_height int, current_string string, max_len_of_value_string int) int {
+// 	var spacing int = (calc_len_of_bottom_layer_string(tree_height, max_len_of_value_string) - len(current_string)) / 2
+// 	if spacing < 0 {
+// 		return 0
+// 	}
+// 	return spacing
+// }
 
 // func centerString(s string, width int) string {
 // 	sLen := len(s)
 // 	if sLen >= width {
 // 		return s
 // 	}
-
 // 	// Calculate the number of spaces needed on each side
 // 	padding := (width - sLen) / 2
-
 // 	// Build the centered string
 // 	centeredStr := strings.Repeat(" ", padding) + s + strings.Repeat(" ", padding)
-
 // 	return centeredStr
 // }
