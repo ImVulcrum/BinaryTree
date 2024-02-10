@@ -124,7 +124,7 @@ func interate_trough_layer(layer []*knot) []*knot {
 	return new_layer
 }
 
-func (t *tree) Print(terminal_width int) string {
+func (t *tree) String() string {
 	var s string
 	var current_layer []*knot
 
@@ -139,9 +139,9 @@ func (t *tree) Print(terminal_width int) string {
 			break
 		}
 
-		fmt.Println(" " + create_layer_string(current_layer, t.height-layer_count, t.max_len_of_value_string))
+		s = s + " " + create_layer_string(current_layer, t.height-layer_count, t.max_len_of_value_string) + "\n"
+		//fmt.Println(" " + create_layer_string(current_layer, t.height-layer_count, t.max_len_of_value_string))
 	}
-
 	return s
 }
 
@@ -184,7 +184,9 @@ func create_layer_string(layer []*knot, reverse_layer_count int, max_count_of_va
 
 			} else { //if the current element is nil, treat it like an element with no childs
 				//left spacing + leftPtr (else block) + rightPtr (else block) + right spacing
-				layer_string = layer_string + strings.Repeat(" ", 4*spacing_count+2*modified_value_digit_count+2*max_count_of_value_digits+2)
+				layer_string = layer_string + strings.Repeat(" ", 4*spacing_count+4*(modified_value_digit_count/2)+2+2*max_count_of_value_digits)
+				// layer_string = layer_string + strings.Repeat(" ", spacing_count+modified_value_digit_count/2) + " " + strings.Repeat(" ", modified_value_digit_count/2+spacing_count) +
+				// current_element_equalized + strings.Repeat(" ", modified_value_digit_count/2+spacing_count) + " " + strings.Repeat(" ", modified_value_digit_count/2+spacing_count+max_count_of_value_digits)
 			}
 
 		} else { //if it is the last layer
